@@ -1,124 +1,150 @@
 <!doctype html>
 <html>
-	<head>
-		<meta charset="utf-8">
-		<title>A lot of lines hover</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
+	<meta charset="utf-8">
+	<title>A lot of lines hover</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 
-		<link rel="stylesheet" href="../dist/uPlot.min.css">
-	</head>
-	<body>
-		<script src="../dist/uPlot.iife.js"></script>
-		<script>function createChart() {
-			let xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30];
+	<link rel="stylesheet" href="../dist/uPlot.min.css">
+</head>
+<body>
+<script src="../dist/uPlot.iife.js"></script>
+<script>function createChart() {
+	let xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30];
 
-			const series = [{}];
+	const series = [{}];
 
-			const data = [
-				xs,
-			];
-			const dataLength = 150;
+	const data = [
+		xs,
+	];
+	const dataLength = 300;
 
-			for (let i = 0; i < dataLength; i++) {
-				const serie = xs.map((t, j) => (180 / dataLength * i) - Math.sin(j) * 120);
-				data.push(serie);
+	for (let i = 0; i < dataLength; i++) {
+		const serie = xs.map((t, j) => (180 / dataLength * i) - Math.sin(j) * 120);
+		data.push(serie);
 
-				const color = getRandomColor();
+		const color = getRandomColor();
 
-				series.push({
-					stroke: color,
-					fill: color,
-				});
-			}
+		series.push({
+			stroke: color,
+			fill: color,
+		});
+	}
 
-			const opts = {
-				legend: {
-					show: false
-				},
-				width: 1920,
-				height: 800,
-				title: "Area Fill",
-				scales: {
-					x: {
-						time: false,
-					},
-				},
-				plugins: [focusPlugin()],
-				series
-			};
+	const opts = {
+		legend: {
+			show: false
+		},
+		focus: {
+			alpha: 1
+		},
+		width: 1920,
+		height: 800,
+		title: "Area Fill",
+		scales: {
+			x: {
+				time: false,
+			},
+		},
+		plugins: [focusPlugin()],
+		series
+	};
 
-			let u = new uPlot(opts, data, document.body);
-		}
+	let u = new uPlot(opts, data, document.body);
+}
 
-		for (let i = 0; i < 12; i++) {
-			requestAnimationFrame(() => {
-				createChart();
-			});
-		}
+for (let i = 0; i < 1; i++) {
+	requestAnimationFrame(() => {
+		createChart();
+	});
+}
 
-		function getRandomColor() {
-				var letters = '0123456789ABCDEF';
-				var color = '#';
-				for (var i = 0; i < 6; i++) {
-					color += letters[Math.floor(Math.random() * 16)];
-				}
-				return color;
-			}
+function getRandomColor() {
+	var letters = '0123456789ABCDEF';
+	var color = '#';
+	for (var i = 0; i < 6; i++) {
+		color += letters[Math.floor(Math.random() * 16)];
+	}
+	return color;
+}
 
-			function focusPlugin() {
-				let _closestDataIndex = -1;
-				let over, bound, bLeft, bTop;
+function focusPlugin() {
+	let canvas, ctx;
+	let _closestDataIndex = -1;
 
-				function syncBounds() {
-					let bbox = over.getBoundingClientRect();
-					bLeft = bbox.left;
-					bTop = bbox.top;
-				}
-
-				return {
-					hooks: {
-						init: (u) => {
-							over = u.over;
-
-							bound = over;
-							//	bound = document.body;
-
-							over.addEventListener('mouseleave', () => {
-								if (_closestDataIndex !== -1) {
-									u.setHoverWidth(_closestDataIndex, 1);
-								}
-							});
-						},
-						setSize: (u) => {
-							syncBounds();
-						},
-						setCursor: (u) => {
-							const yVal = u.posToVal(u.cursor.top, 'y');
-
-							if (!u.cursor.event || !u.cursor.event.clientX) {
-								return;
-							}
-
-							const idx = u.cursor.idx;
-
-							let closestDataIndex = 1;
-							for (let i = 1; i < u.data.length; i++) {
-								if (yVal || yVal === 0) {
-									if (Math.abs(u.data[i][idx] - yVal) < Math.abs(u.data[closestDataIndex][idx] - yVal)) {
-										closestDataIndex = i;
-									}
-								}
-							}
-							if (_closestDataIndex !== -1) {
-								u.setHoverWidth(_closestDataIndex, 0);
-							}
-							_closestDataIndex = closestDataIndex;
-							u.setHoverWidth(closestDataIndex, 3);
+	return {
+		hooks: {
+			setSeries:  (u, seriesIdx, opts) => {
+				canvas.width = canvas.width;
+				for (let i = 1; i < u.series.length; i++) {
+					let series = u.series[i];
+					if (series.hovered) {
+						if (series._fill) {
+							ctx.fillStyle = series._fill;
+							ctx.fill(series._paths.fill);
+						}
+						if (series._stroke) {
+							ctx.strokeStyle = series._stroke;
+							ctx.stroke(series._paths.stroke);
 						}
 					}
-				};
-			}
+				}
+			},
+			init: (u) => {
+				const over = u.over;
 
-		</script>
-	</body>
+				canvas = document.createElement("canvas");
+				canvas.style.position = "absolute";
+				canvas.style.top = "0";
+				over.parentNode.insertBefore(canvas, over);
+				ctx = canvas.getContext("2d");
+
+				over.addEventListener('mouseleave', () => {
+					if (_closestDataIndex !== -1) {
+						if (_closestDataIndex !== -1) {
+							u.series[_closestDataIndex].hovered = false;
+							u.setSeries(_closestDataIndex, {}, true);
+						}
+						// u.setHoverWidth(_closestDataIndex, 1);
+					}
+				});
+			},
+			setSize: (u) => {
+				console.log(u)
+				canvas.width = u.width * devicePixelRatio;
+				canvas.height = u.height * devicePixelRatio;
+			},
+			setCursor: (u) => {
+				const yVal = u.posToVal(u.cursor.top, 'y');
+
+				if (!u.cursor.event || !u.cursor.event.clientX) {
+					return;
+				}
+
+				const idx = u.cursor.idx;
+
+				let closestDataIndex = 1;
+				for (let i = 1; i < u.data.length; i++) {
+					if (yVal || yVal === 0) {
+						if (Math.abs(u.data[i][idx] - yVal) < Math.abs(u.data[closestDataIndex][idx] - yVal)) {
+							closestDataIndex = i;
+						}
+					}
+				}
+				if (closestDataIndex !== _closestDataIndex) {
+					if (_closestDataIndex !== -1) {
+						u.series[_closestDataIndex].hovered = false;
+						u.setSeries(_closestDataIndex, {}, true);
+					}
+					_closestDataIndex = closestDataIndex;
+					u.series[closestDataIndex].hovered = true;
+					u.setSeries(closestDataIndex, {}, true);
+				}
+			}
+		}
+	};
+}
+
+</script>
+</body>
 </html>

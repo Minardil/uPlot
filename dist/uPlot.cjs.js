@@ -2870,9 +2870,7 @@ function uPlot(opts, data, then) {
 	}
 
 	const can = placeTag("canvas");
-	const hoverCan = placeTag("canvas");
 	const ctx = self.ctx = can.getContext("2d");
-	const hoverCtx = self.hoverCtx = hoverCan.getContext("2d");
 
 	const wrap = placeDiv(WRAP, root);
 
@@ -2885,7 +2883,6 @@ function uPlot(opts, data, then) {
 
 	const under = self.under = placeDiv(UNDER, wrap);
 	wrap.appendChild(can);
-	wrap.appendChild(hoverCan);
 	const over = self.over = placeDiv(OVER, wrap);
 
 	opts = copy(opts);
@@ -3254,16 +3251,7 @@ function uPlot(opts, data, then) {
 	let shouldConvergeSize = false;
 	let shouldSetCursor = false;
 	let shouldSetSelect = false;
-	let shouldSetHover = false;
 	let shouldSetLegend = false;
-
-	function setHoverWidth(i, width) {
-		shouldSetHover = true;
-		self.series[i].hoverWidth = width;
-		commit();
-	}
-
-	self.setHoverWidth = setHoverWidth;
 
 	function _setSize(width, height, force) {
 		if (force || (width != self.width || height != self.height))
@@ -3846,7 +3834,7 @@ function uPlot(opts, data, then) {
 	let ctxStroke, ctxFill, ctxWidth, ctxDash, ctxJoin, ctxCap, ctxFont, ctxAlign, ctxBaseline;
 	let ctxAlpha;
 
-	function setCtxStyle(stroke, width, dash, cap, fill, join, ctx) {
+	function setCtxStyle(stroke, width, dash, cap, fill, join) {
 		stroke ??= transparent;
 		dash   ??= EMPTY_ARR;
 		cap    ??= "butt"; // (‿|‿)
@@ -3867,7 +3855,7 @@ function uPlot(opts, data, then) {
 			ctx.setLineDash(ctxDash = dash);
 	}
 
-	function setFontStyle(font, fill, align, baseline, ctx) {
+	function setFontStyle(font, fill, align, baseline) {
 		if (fill != ctxFill)
 			ctx.fillStyle = ctxFill = fill;
 		if (font != ctxFont)
@@ -4107,10 +4095,10 @@ function uPlot(opts, data, then) {
 		return [_i0, _i1];
 	}
 
-	function drawSeries(ctx) {
+	function drawSeries() {
 		if (dataLen > 0) {
 			series.forEach((s, i) => {
-				if (i > 0 && s.show && (ctx !== hoverCtx || s.hoverWidth > 0)) {
+				if (i > 0 && s.show) {
 					cacheStrokeFill(i, false);
 					cacheStrokeFill(i, true);
 
@@ -4128,11 +4116,11 @@ function uPlot(opts, data, then) {
 			});
 
 			series.forEach((s, i) => {
-				if (i > 0 && s.show && (ctx !== hoverCtx || s.hoverWidth > 0)) {
+				if (i > 0 && s.show) {
 					if (ctxAlpha != s.alpha)
 						ctx.globalAlpha = ctxAlpha = s.alpha;
 
-					s._paths != null && drawPath(i, false, ctx);
+					s._paths != null && drawPath(i, false);
 
 					{
 						let _gaps = s._paths != null ? s._paths.gaps : null;
@@ -4142,7 +4130,7 @@ function uPlot(opts, data, then) {
 
 						if (show || idxs) {
 							s.points._paths = s.points.paths(self, i, i0, i1, idxs);
-							drawPath(i, true, ctx);
+							drawPath(i, true);
 						}
 					}
 
@@ -4162,9 +4150,8 @@ function uPlot(opts, data, then) {
 		s._fill   = s.fill(self, si);
 	}
 
-	function drawPath(si, _points, ctx) {
+	function drawPath(si, _points) {
 		let s = _points ? series[si].points : series[si];
-		const sWidth = (ctx === hoverCtx) ? (s.hoverWidth || s.width) : s.width;
 
 		let {
 			stroke,
@@ -4174,7 +4161,7 @@ function uPlot(opts, data, then) {
 
 			_stroke: strokeStyle = s._stroke,
 			_fill:   fillStyle   = s._fill,
-			_width:  width       = sWidth,
+			_width:  width       = s.width,
 		} = s._paths;
 
 		width = roundDec(width * pxRatio, 3);
@@ -4201,14 +4188,14 @@ function uPlot(opts, data, then) {
 
 		// the points pathbuilder's gapsClip is its boundsClip, since points dont need gaps clipping, and bounds depend on point size
 		if (_points)
-			strokeFill(strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, gapsClip, undefined,undefined, undefined, ctx);
+			strokeFill(strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, gapsClip);
 		else
-			fillStroke(si, strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, boundsClip, gapsClip, ctx);
+			fillStroke(si, strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, boundsClip, gapsClip);
 
 		_pxAlign && ctx.translate(-offset, -offset);
 	}
 
-	function fillStroke(si, strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, ctx) {
+	function fillStroke(si, strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip) {
 		let didStrokeFill = false;
 
 		// for all bands where this series is the top edge, create upwards clips using the bottom edges
@@ -4236,20 +4223,20 @@ function uPlot(opts, data, then) {
 				else
 					bandClip = null;
 
-				strokeFill(strokeStyle, lineWidth, lineDash, lineCap, _fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip, ctx);
+				strokeFill(strokeStyle, lineWidth, lineDash, lineCap, _fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip);
 
 				didStrokeFill = true;
 			}
 		});
 
 		if (!didStrokeFill)
-			strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, undefined, undefined, ctx);
+			strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip);
 	}
 
 	const CLIP_FILL_STROKE = BAND_CLIP_FILL | BAND_CLIP_STROKE;
 
-	function strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip, ctx) {
-		setCtxStyle(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, undefined, ctx);
+	function strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip) {
+		setCtxStyle(strokeStyle, lineWidth, lineDash, lineCap, fillStyle);
 
 		if (boundsClip || gapsClip || bandClip) {
 			ctx.save();
@@ -4261,13 +4248,13 @@ function uPlot(opts, data, then) {
 			if ((flags & CLIP_FILL_STROKE) == CLIP_FILL_STROKE) {
 				ctx.clip(bandClip);
 				gapsClip2 && ctx.clip(gapsClip2);
-				doFill(fillStyle, fillPath, ctx);
-				doStroke(strokeStyle, strokePath, lineWidth, ctx);
+				doFill(fillStyle, fillPath);
+				doStroke(strokeStyle, strokePath, lineWidth);
 			}
 			else if (flags & BAND_CLIP_STROKE) {
-				doFill(fillStyle, fillPath, ctx);
+				doFill(fillStyle, fillPath);
 				ctx.clip(bandClip);
-				doStroke(strokeStyle, strokePath, lineWidth, ctx);
+				doStroke(strokeStyle, strokePath, lineWidth);
 			}
 			else if (flags & BAND_CLIP_FILL) {
 				ctx.save();
@@ -4275,19 +4262,19 @@ function uPlot(opts, data, then) {
 				gapsClip2 && ctx.clip(gapsClip2);
 				doFill(fillStyle, fillPath);
 				ctx.restore();
-				doStroke(strokeStyle, strokePath, lineWidth, ctx);
+				doStroke(strokeStyle, strokePath, lineWidth);
 			}
 		}
 		else {
-			doFill(fillStyle, fillPath, ctx);
-			doStroke(strokeStyle, strokePath, lineWidth, ctx);
+			doFill(fillStyle, fillPath);
+			doStroke(strokeStyle, strokePath, lineWidth);
 		}
 
 		if (boundsClip || gapsClip || bandClip)
 			ctx.restore();
 	}
 
-	function doStroke(strokeStyle, strokePath, lineWidth, ctx) {
+	function doStroke(strokeStyle, strokePath, lineWidth) {
 		if (lineWidth > 0) {
 			if (strokePath instanceof Map) {
 				strokePath.forEach((strokePath, strokeStyle) => {
@@ -4300,7 +4287,7 @@ function uPlot(opts, data, then) {
 		}
 	}
 
-	function doFill(fillStyle, fillPath, ctx) {
+	function doFill(fillStyle, fillPath) {
 		if (fillPath instanceof Map) {
 			fillPath.forEach((fillPath, fillStyle) => {
 				ctx.fillStyle = ctxFill = fillStyle;
@@ -4327,12 +4314,12 @@ function uPlot(opts, data, then) {
 		return (axis._found = incrSpace);
 	}
 
-	function drawOrthoLines(offs, filts, ori, side, pos0, len, width, stroke, dash, cap, ctx) {
+	function drawOrthoLines(offs, filts, ori, side, pos0, len, width, stroke, dash, cap) {
 		let offset = (width % 2) / 2;
 
 		pxAlign == 1 && ctx.translate(offset, offset);
 
-		setCtxStyle(stroke, width, dash, cap, stroke, undefined, ctx);
+		setCtxStyle(stroke, width, dash, cap, stroke);
 
 		ctx.beginPath();
 
@@ -4442,7 +4429,7 @@ function uPlot(opts, data, then) {
 		return converged;
 	}
 
-	function drawAxesGrid(ctx) {
+	function drawAxesGrid() {
 		for (let i = 0; i < axes.length; i++) {
 			let axis = axes[i];
 
@@ -4463,7 +4450,7 @@ function uPlot(opts, data, then) {
 				let shiftAmt = axis.labelGap * shiftDir;
 				let baseLpos = round((axis._lpos + shiftAmt) * pxRatio);
 
-				setFontStyle(axis.labelFont[0], fillStyle, "center", side == 2 ? TOP : BOTTOM, ctx);
+				setFontStyle(axis.labelFont[0], fillStyle, "center", side == 2 ? TOP : BOTTOM);
 
 				ctx.save();
 
@@ -4528,7 +4515,7 @@ function uPlot(opts, data, then) {
 			let textBaseline = angle ||
 			ori == 1 ? "middle" : side == 2 ? TOP   : BOTTOM;
 
-			setFontStyle(font, fillStyle, textAlign, textBaseline, ctx);
+			setFontStyle(font, fillStyle, textAlign, textBaseline);
 
 			let lineHeight = axis.font[1] * axis.lineGap;
 
@@ -4578,7 +4565,6 @@ function uPlot(opts, data, then) {
 					ticks.stroke(self, i),
 					ticks.dash,
 					ticks.cap,
-					ctx
 				);
 			}
 
@@ -4597,7 +4583,6 @@ function uPlot(opts, data, then) {
 					grid.stroke(self, i),
 					grid.dash,
 					grid.cap,
-					ctx
 				);
 			}
 
@@ -4613,7 +4598,6 @@ function uPlot(opts, data, then) {
 					border.stroke(self, i),
 					border.dash,
 					border.cap,
-					ctx
 				);
 			}
 		}
@@ -4709,10 +4693,6 @@ function uPlot(opts, data, then) {
 			// canvas pixels to white, even when followed up with clearRect() below
 			can.width  = round(fullWidCss * pxRatio);
 			can.height = round(fullHgtCss * pxRatio);
-			hoverCan.width = round(fullWidCss * pxRatio);
-			hoverCan.height = round(fullHgtCss * pxRatio);
-			hoverCan.style.position = "absolute";
-			hoverCan.style.top = "0";
 
 			axes.forEach(({ _el, _show, _size, _pos, side }) => {
 				if (_el != null) {
@@ -4785,20 +4765,10 @@ function uPlot(opts, data, then) {
 		}
 
 		if (fullWidCss > 0 && fullHgtCss > 0) {
-			if (shouldSetHover) {
-				shouldSetHover = false;
-				hoverCtx.clearRect(0, 0, hoverCan.width, hoverCan.height);
-				fire("drawClear");
-				drawSeries(hoverCtx);
-				fire("hoverDraw");
-			} else {
-				ctx.clearRect(0, 0, can.width, can.height);
-				hoverCtx.clearRect(0, 0, hoverCan.width, hoverCan.height);
-				fire("drawClear");
-				drawOrder.forEach(fn => fn(ctx));
-				drawSeries(hoverCtx);
-				fire("draw");
-			}
+			ctx.clearRect(0, 0, can.width, can.height);
+			fire("drawClear");
+			drawOrder.forEach(fn => fn());
+			fire("draw");
 		}
 
 		if (select.show && shouldSetSelect) {
