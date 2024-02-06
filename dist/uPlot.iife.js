@@ -2831,8 +2831,8 @@ var uPlot = (function () {
 		function getValPct(val, scale) {
 			let _val = (
 				scale.distr == 3 ? log10(val > 0 ? val : scale.clamp(self, val, scale.min, scale.max, scale.key)) :
-				scale.distr == 4 ? asinh(val, scale.asinh) :
-				val
+					scale.distr == 4 ? asinh(val, scale.asinh) :
+						val
 			);
 
 			return (_val - scale._min) / (scale._max - scale._min);
@@ -2871,7 +2871,9 @@ var uPlot = (function () {
 		}
 
 		const can = placeTag("canvas");
+		const hoverCan = placeTag("canvas");
 		const ctx = self.ctx = can.getContext("2d");
+		const hoverCtx = self.hoverCtx = hoverCan.getContext("2d");
 
 		const wrap = placeDiv(WRAP, root);
 
@@ -2884,6 +2886,7 @@ var uPlot = (function () {
 
 		const under = self.under = placeDiv(UNDER, wrap);
 		wrap.appendChild(can);
+		wrap.appendChild(hoverCan);
 		const over = self.over = placeDiv(OVER, wrap);
 
 		opts = copy(opts);
@@ -2969,8 +2972,8 @@ var uPlot = (function () {
 					}
 
 					sc.range = fnOrSelf(rn || (isTime ? snapTimeX : scaleKey == xScaleKey ?
-						(sc.distr == 3 ? snapLogX : sc.distr == 4 ? snapAsinhX : snapNumX) :
-						(sc.distr == 3 ? snapLogY : sc.distr == 4 ? snapAsinhY : snapNumY)
+							(sc.distr == 3 ? snapLogX : sc.distr == 4 ? snapAsinhX : snapNumX) :
+							(sc.distr == 3 ? snapLogY : sc.distr == 4 ? snapAsinhY : snapNumY)
 					));
 
 					sc.auto = fnOrSelf(rangeIsArr ? false : sc.auto);
@@ -3252,7 +3255,16 @@ var uPlot = (function () {
 		let shouldConvergeSize = false;
 		let shouldSetCursor = false;
 		let shouldSetSelect = false;
+		let shouldSetHover = false;
 		let shouldSetLegend = false;
+
+		function setHoverWidth(i, width) {
+			shouldSetHover = true;
+			self.series[i].hoverWidth = width;
+			commit();
+		}
+
+		self.setHoverWidth = setHoverWidth;
 
 		function _setSize(width, height, force) {
 			if (force || (width != self.width || height != self.height))
@@ -3267,7 +3279,7 @@ var uPlot = (function () {
 		}
 
 		function calcSize(width, height) {
-		//	log("calcSize()", arguments);
+			//	log("calcSize()", arguments);
 
 			self.width  = fullWidCss = plotWidCss = width;
 			self.height = fullHgtCss = plotHgtCss = height;
@@ -3283,7 +3295,7 @@ var uPlot = (function () {
 			plotWid = bb.width  = incrRound(plotWidCss * pxRatio, 0.5);
 			plotHgt = bb.height = incrRound(plotHgtCss * pxRatio, 0.5);
 
-		//	updOriDims();
+			//	updOriDims();
 		}
 
 		// ensures size calc convergence
@@ -3466,8 +3478,8 @@ var uPlot = (function () {
 						else {
 							idx2 =
 								nonNullRgt == null ? nonNullLft :
-								nonNullLft == null ? nonNullRgt :
-								cursorIdx - nonNullLft <= nonNullRgt - cursorIdx ? nonNullLft : nonNullRgt;
+									nonNullLft == null ? nonNullRgt :
+										cursorIdx - nonNullLft <= nonNullRgt - cursorIdx ? nonNullLft : nonNullRgt;
 						}
 					}
 				}
@@ -3663,16 +3675,16 @@ var uPlot = (function () {
 				axis.values = (
 					// static array of tick values
 					isArr(av) && !isArr(av[0]) ? fnOrSelf(av) :
-					// temporal
-					isTime ? (
-						// config array of fmtDate string tpls
-						isArr(av) ?
-							timeAxisVals(_tzDate, timeAxisStamps(av, _fmtDate)) :
-						// fmtDate string tpl
-						isStr(av) ?
-							timeAxisVal(_tzDate, av) :
-						av || _timeAxisVals
-					) : av || numAxisVals
+						// temporal
+						isTime ? (
+							// config array of fmtDate string tpls
+							isArr(av) ?
+								timeAxisVals(_tzDate, timeAxisStamps(av, _fmtDate)) :
+								// fmtDate string tpl
+								isStr(av) ?
+									timeAxisVal(_tzDate, av) :
+									av || _timeAxisVals
+						) : av || numAxisVals
 				);
 
 				axis.filter = fnOrSelf(axis.filter || (          sc.distr >= 3 && sc.log == 10 ? log10AxisValsFilt : sc.distr == 3 && sc.log == 2 ? log2AxisValsFilt : retArg1));
@@ -3683,11 +3695,11 @@ var uPlot = (function () {
 				axis._size   = axis.size(self, null, i, 0);
 
 				axis._space  =
-				axis._rotate =
-				axis._incrs  =
-				axis._found  =	// foundIncrSpace
-				axis._splits =
-				axis._values = null;
+					axis._rotate =
+						axis._incrs  =
+							axis._found  =	// foundIncrSpace
+								axis._splits =
+									axis._values = null;
 
 				if (axis._size > 0) {
 					sidesWithAxes[i] = true;
@@ -3695,7 +3707,7 @@ var uPlot = (function () {
 				}
 
 				// debug
-			//	axis._el.style.background = "#"  + Math.floor(Math.random()*16777215).toString(16) + '80';
+				//	axis._el.style.background = "#"  + Math.floor(Math.random()*16777215).toString(16) + '80';
 			}
 		}
 
@@ -3835,7 +3847,7 @@ var uPlot = (function () {
 		let ctxStroke, ctxFill, ctxWidth, ctxDash, ctxJoin, ctxCap, ctxFont, ctxAlign, ctxBaseline;
 		let ctxAlpha;
 
-		function setCtxStyle(stroke, width, dash, cap, fill, join) {
+		function setCtxStyle(stroke, width, dash, cap, fill, join, ctx) {
 			stroke ??= transparent;
 			dash   ??= EMPTY_ARR;
 			cap    ??= "butt"; // (‿|‿)
@@ -3856,7 +3868,7 @@ var uPlot = (function () {
 				ctx.setLineDash(ctxDash = dash);
 		}
 
-		function setFontStyle(font, fill, align, baseline) {
+		function setFontStyle(font, fill, align, baseline, ctx) {
 			if (fill != ctxFill)
 				ctx.fillStyle = ctxFill = fill;
 			if (font != ctxFont)
@@ -3884,7 +3896,7 @@ var uPlot = (function () {
 		const AUTOSCALE = {min: null, max: null};
 
 		function setScales() {
-		//	log("setScales()", arguments);
+			//	log("setScales()", arguments);
 
 			// implicitly add auto scales, and unranged scales
 			for (let k in scales) {
@@ -4096,10 +4108,10 @@ var uPlot = (function () {
 			return [_i0, _i1];
 		}
 
-		function drawSeries() {
+		function drawSeries(ctx) {
 			if (dataLen > 0) {
 				series.forEach((s, i) => {
-					if (i > 0 && s.show) {
+					if (i > 0 && s.show && (ctx !== hoverCtx || s.hoverWidth > 0)) {
 						cacheStrokeFill(i, false);
 						cacheStrokeFill(i, true);
 
@@ -4117,11 +4129,11 @@ var uPlot = (function () {
 				});
 
 				series.forEach((s, i) => {
-					if (i > 0 && s.show) {
+					if (i > 0 && s.show && (ctx !== hoverCtx || s.hoverWidth > 0)) {
 						if (ctxAlpha != s.alpha)
 							ctx.globalAlpha = ctxAlpha = s.alpha;
 
-						s._paths != null && drawPath(i, false);
+						s._paths != null && drawPath(i, false, ctx);
 
 						{
 							let _gaps = s._paths != null ? s._paths.gaps : null;
@@ -4131,7 +4143,7 @@ var uPlot = (function () {
 
 							if (show || idxs) {
 								s.points._paths = s.points.paths(self, i, i0, i1, idxs);
-								drawPath(i, true);
+								drawPath(i, true, ctx);
 							}
 						}
 
@@ -4151,8 +4163,9 @@ var uPlot = (function () {
 			s._fill   = s.fill(self, si);
 		}
 
-		function drawPath(si, _points) {
+		function drawPath(si, _points, ctx) {
 			let s = _points ? series[si].points : series[si];
+			const sWidth = (ctx === hoverCtx) ? (s.hoverWidth || s.width) : s.width;
 
 			let {
 				stroke,
@@ -4162,7 +4175,7 @@ var uPlot = (function () {
 
 				_stroke: strokeStyle = s._stroke,
 				_fill:   fillStyle   = s._fill,
-				_width:  width       = s.width,
+				_width:  width       = sWidth,
 			} = s._paths;
 
 			width = roundDec(width * pxRatio, 3);
@@ -4189,14 +4202,14 @@ var uPlot = (function () {
 
 			// the points pathbuilder's gapsClip is its boundsClip, since points dont need gaps clipping, and bounds depend on point size
 			if (_points)
-				strokeFill(strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, gapsClip);
+				strokeFill(strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, gapsClip, undefined,undefined, undefined, ctx);
 			else
-				fillStroke(si, strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, boundsClip, gapsClip);
+				fillStroke(si, strokeStyle, width, s.dash, s.cap, fillStyle, stroke, fill, flags, boundsClip, gapsClip, ctx);
 
 			_pxAlign && ctx.translate(-offset, -offset);
 		}
 
-		function fillStroke(si, strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip) {
+		function fillStroke(si, strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, ctx) {
 			let didStrokeFill = false;
 
 			// for all bands where this series is the top edge, create upwards clips using the bottom edges
@@ -4224,20 +4237,20 @@ var uPlot = (function () {
 					else
 						bandClip = null;
 
-					strokeFill(strokeStyle, lineWidth, lineDash, lineCap, _fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip);
+					strokeFill(strokeStyle, lineWidth, lineDash, lineCap, _fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip, ctx);
 
 					didStrokeFill = true;
 				}
 			});
 
 			if (!didStrokeFill)
-				strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip);
+				strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, undefined, undefined, ctx);
 		}
 
 		const CLIP_FILL_STROKE = BAND_CLIP_FILL | BAND_CLIP_STROKE;
 
-		function strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip) {
-			setCtxStyle(strokeStyle, lineWidth, lineDash, lineCap, fillStyle);
+		function strokeFill(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, strokePath, fillPath, flags, boundsClip, gapsClip, gapsClip2, bandClip, ctx) {
+			setCtxStyle(strokeStyle, lineWidth, lineDash, lineCap, fillStyle, undefined, ctx);
 
 			if (boundsClip || gapsClip || bandClip) {
 				ctx.save();
@@ -4249,13 +4262,13 @@ var uPlot = (function () {
 				if ((flags & CLIP_FILL_STROKE) == CLIP_FILL_STROKE) {
 					ctx.clip(bandClip);
 					gapsClip2 && ctx.clip(gapsClip2);
-					doFill(fillStyle, fillPath);
-					doStroke(strokeStyle, strokePath, lineWidth);
+					doFill(fillStyle, fillPath, ctx);
+					doStroke(strokeStyle, strokePath, lineWidth, ctx);
 				}
 				else if (flags & BAND_CLIP_STROKE) {
-					doFill(fillStyle, fillPath);
+					doFill(fillStyle, fillPath, ctx);
 					ctx.clip(bandClip);
-					doStroke(strokeStyle, strokePath, lineWidth);
+					doStroke(strokeStyle, strokePath, lineWidth, ctx);
 				}
 				else if (flags & BAND_CLIP_FILL) {
 					ctx.save();
@@ -4263,19 +4276,19 @@ var uPlot = (function () {
 					gapsClip2 && ctx.clip(gapsClip2);
 					doFill(fillStyle, fillPath);
 					ctx.restore();
-					doStroke(strokeStyle, strokePath, lineWidth);
+					doStroke(strokeStyle, strokePath, lineWidth, ctx);
 				}
 			}
 			else {
-				doFill(fillStyle, fillPath);
-				doStroke(strokeStyle, strokePath, lineWidth);
+				doFill(fillStyle, fillPath, ctx);
+				doStroke(strokeStyle, strokePath, lineWidth, ctx);
 			}
 
 			if (boundsClip || gapsClip || bandClip)
 				ctx.restore();
 		}
 
-		function doStroke(strokeStyle, strokePath, lineWidth) {
+		function doStroke(strokeStyle, strokePath, lineWidth, ctx) {
 			if (lineWidth > 0) {
 				if (strokePath instanceof Map) {
 					strokePath.forEach((strokePath, strokeStyle) => {
@@ -4288,7 +4301,7 @@ var uPlot = (function () {
 			}
 		}
 
-		function doFill(fillStyle, fillPath) {
+		function doFill(fillStyle, fillPath, ctx) {
 			if (fillPath instanceof Map) {
 				fillPath.forEach((fillPath, fillStyle) => {
 					ctx.fillStyle = ctxFill = fillStyle;
@@ -4315,12 +4328,12 @@ var uPlot = (function () {
 			return (axis._found = incrSpace);
 		}
 
-		function drawOrthoLines(offs, filts, ori, side, pos0, len, width, stroke, dash, cap) {
+		function drawOrthoLines(offs, filts, ori, side, pos0, len, width, stroke, dash, cap, ctx) {
 			let offset = (width % 2) / 2;
 
 			pxAlign == 1 && ctx.translate(offset, offset);
 
-			setCtxStyle(stroke, width, dash, cap, stroke);
+			setCtxStyle(stroke, width, dash, cap, stroke, undefined, ctx);
 
 			ctx.beginPath();
 
@@ -4353,7 +4366,7 @@ var uPlot = (function () {
 		}
 
 		function axesCalc(cycleNum) {
-		//	log("axesCalc()", arguments);
+			//	log("axesCalc()", arguments);
 
 			let converged = true;
 
@@ -4430,7 +4443,7 @@ var uPlot = (function () {
 			return converged;
 		}
 
-		function drawAxesGrid() {
+		function drawAxesGrid(ctx) {
 			for (let i = 0; i < axes.length; i++) {
 				let axis = axes[i];
 
@@ -4451,7 +4464,7 @@ var uPlot = (function () {
 					let shiftAmt = axis.labelGap * shiftDir;
 					let baseLpos = round((axis._lpos + shiftAmt) * pxRatio);
 
-					setFontStyle(axis.labelFont[0], fillStyle, "center", side == 2 ? TOP : BOTTOM);
+					setFontStyle(axis.labelFont[0], fillStyle, "center", side == 2 ? TOP : BOTTOM, ctx);
 
 					ctx.save();
 
@@ -4504,19 +4517,19 @@ var uPlot = (function () {
 				let basePos  = pxRound(axis._pos * pxRatio);
 				let shiftAmt = (tickSize + axisGap) * shiftDir;
 				let finalPos = basePos + shiftAmt;
-				    y        = ori == 0 ? finalPos : 0;
-				    x        = ori == 1 ? finalPos : 0;
+				y        = ori == 0 ? finalPos : 0;
+				x        = ori == 1 ? finalPos : 0;
 
 				let font         = axis.font[0];
 				let textAlign    = axis.align == 1 ? LEFT :
-				                   axis.align == 2 ? RIGHT :
-				                   angle > 0 ? LEFT :
-				                   angle < 0 ? RIGHT :
-				                   ori == 0 ? "center" : side == 3 ? RIGHT : LEFT;
+					axis.align == 2 ? RIGHT :
+						angle > 0 ? LEFT :
+							angle < 0 ? RIGHT :
+								ori == 0 ? "center" : side == 3 ? RIGHT : LEFT;
 				let textBaseline = angle ||
-				                   ori == 1 ? "middle" : side == 2 ? TOP   : BOTTOM;
+				ori == 1 ? "middle" : side == 2 ? TOP   : BOTTOM;
 
-				setFontStyle(font, fillStyle, textAlign, textBaseline);
+				setFontStyle(font, fillStyle, textAlign, textBaseline, ctx);
 
 				let lineHeight = axis.font[1] * axis.lineGap;
 
@@ -4566,6 +4579,7 @@ var uPlot = (function () {
 						ticks.stroke(self, i),
 						ticks.dash,
 						ticks.cap,
+						ctx
 					);
 				}
 
@@ -4584,6 +4598,7 @@ var uPlot = (function () {
 						grid.stroke(self, i),
 						grid.dash,
 						grid.cap,
+						ctx
 					);
 				}
 
@@ -4599,6 +4614,7 @@ var uPlot = (function () {
 						border.stroke(self, i),
 						border.dash,
 						border.cap,
+						ctx
 					);
 				}
 			}
@@ -4607,7 +4623,7 @@ var uPlot = (function () {
 		}
 
 		function resetYSeries(minMax) {
-		//	log("resetYSeries()", arguments);
+			//	log("resetYSeries()", arguments);
 
 			series.forEach((s, i) => {
 				if (i > 0) {
@@ -4664,7 +4680,7 @@ var uPlot = (function () {
 		self.batch = batch;
 
 		function _commit() {
-		//	log("_commit()", arguments);
+			//	log("_commit()", arguments);
 
 			if (shouldSetScales) {
 				setScales();
@@ -4694,6 +4710,10 @@ var uPlot = (function () {
 				// canvas pixels to white, even when followed up with clearRect() below
 				can.width  = round(fullWidCss * pxRatio);
 				can.height = round(fullHgtCss * pxRatio);
+				hoverCan.width = round(fullWidCss * pxRatio);
+				hoverCan.height = round(fullHgtCss * pxRatio);
+				hoverCan.style.position = "absolute";
+				hoverCan.style.top = "0";
 
 				axes.forEach(({ _el, _show, _size, _pos, side }) => {
 					if (_el != null) {
@@ -4766,10 +4786,20 @@ var uPlot = (function () {
 			}
 
 			if (fullWidCss > 0 && fullHgtCss > 0) {
-				ctx.clearRect(0, 0, can.width, can.height);
-				fire("drawClear");
-				drawOrder.forEach(fn => fn());
-				fire("draw");
+				if (shouldSetHover) {
+					shouldSetHover = false;
+					hoverCtx.clearRect(0, 0, hoverCan.width, hoverCan.height);
+					fire("drawClear");
+					drawSeries(hoverCtx);
+					fire("hoverDraw");
+				} else {
+					ctx.clearRect(0, 0, can.width, can.height);
+					hoverCtx.clearRect(0, 0, hoverCan.width, hoverCan.height);
+					fire("drawClear");
+					drawOrder.forEach(fn => fn(ctx));
+					drawSeries(hoverCtx);
+					fire("draw");
+				}
 			}
 
 			if (select.show && shouldSetSelect) {
@@ -4840,7 +4870,7 @@ var uPlot = (function () {
 					}
 				}
 
-			//	log("setScale()", arguments);
+				//	log("setScale()", arguments);
 
 				pendScales[key] = opts;
 
@@ -4943,7 +4973,7 @@ var uPlot = (function () {
 		}
 
 		function setSeries(i, opts, _fire, _pub) {
-		//	log("setSeries()", arguments);
+			//	log("setSeries()", arguments);
 
 			if (opts.focus != null)
 				setFocus(i);
@@ -5013,7 +5043,7 @@ var uPlot = (function () {
 
 		function setFocus(i) {
 			if (i != focusedSeries) {
-			//	log("setFocus()", arguments);
+				//	log("setFocus()", arguments);
 
 				let allFocused = i == null;
 
@@ -5070,8 +5100,8 @@ var uPlot = (function () {
 
 			return (
 				distr == 3 ? pow(10, sv) :
-				distr == 4 ? sinh(sv, sc.asinh) :
-				sv
+					distr == 4 ? sinh(sv, sc.asinh) :
+						sv
 			);
 		}
 
@@ -5085,20 +5115,20 @@ var uPlot = (function () {
 		self.posToVal = posToVal;
 		self.valToPos = (val, scale, can) => (
 			scales[scale].ori == 0 ?
-			getHPos(val, scales[scale],
-				can ? plotWid : plotWidCss,
-				can ? plotLft : 0,
-			) :
-			getVPos(val, scales[scale],
-				can ? plotHgt : plotHgtCss,
-				can ? plotTop : 0,
-			)
+				getHPos(val, scales[scale],
+					can ? plotWid : plotWidCss,
+					can ? plotLft : 0,
+				) :
+				getVPos(val, scales[scale],
+					can ? plotHgt : plotHgtCss,
+					can ? plotTop : 0,
+				)
 		);
 
 		self.setCursor = (opts, _fire, _pub) => {
 			mouseLeft1 = opts.left;
 			mouseTop1 = opts.top;
-		//	assign(cursor, opts);
+			//	assign(cursor, opts);
 			updateCursor(null, _fire, _pub);
 		};
 
@@ -5175,7 +5205,7 @@ var uPlot = (function () {
 		}
 
 		function updateCursor(src, _fire, _pub) {
-		//	ts == null && log("updateCursor()", arguments);
+			//	ts == null && log("updateCursor()", arguments);
 
 			rawMouseLeft1 = mouseLeft1;
 			rawMouseTop1 = mouseTop1;
@@ -5221,7 +5251,7 @@ var uPlot = (function () {
 				}
 			}
 			else {
-			//	let pctY = 1 - (y / rect.height);
+				//	let pctY = 1 - (y / rect.height);
 
 				let mouseXPos, valAtPosX, xPos;
 
@@ -5675,10 +5705,10 @@ var uPlot = (function () {
 			hasSelect && chgSelect && setSelect(select);
 
 			if (drag.setScale && hasSelect && chgSelect) {
-			//	if (syncKey != null) {
-			//		dragX = drag.x;
-			//		dragY = drag.y;
-			//	}
+				//	if (syncKey != null) {
+				//		dragX = drag.x;
+				//		dragY = drag.y;
+				//	}
 
 				let xOff = left,
 					xDim = width,
@@ -5687,9 +5717,9 @@ var uPlot = (function () {
 
 				if (scaleX.ori == 1) {
 					xOff = top,
-					xDim = height,
-					yOff = left,
-					yDim = width;
+						xDim = height,
+						yOff = left,
+						yDim = width;
 				}
 
 				if (dragX) {
